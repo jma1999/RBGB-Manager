@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Office Task Board</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header>
+    <div>
+      <h1>Office Task Board</h1>
+      <p>Shared task dashboard for daily office work.</p>
+    </div>
+
+    <a
+      id="new-task-button"
+      class="button"
+      target="_blank"
+      rel="noopener noreferrer"
+    >
+      + Add New Task
+    </a>
+  </header>
+
+  <main class="board">
+    <section>
+      <h2>To Do</h2>
+      <div id="todo" class="task-column"></div>
+    </section>
+
+    <section>
+      <h2>In Progress</h2>
+      <div id="in-progress" class="task-column"></div>
+    </section>
+
+    <section>
+      <h2>Blocked / Issues</h2>
+      <div id="blocked" class="task-column"></div>
+    </section>
+
+    <section>
+      <h2>Done</h2>
+      <div id="done" class="task-column"></div>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
