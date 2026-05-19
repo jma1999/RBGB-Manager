@@ -3,48 +3,160 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
   <title>RBGB's Office Task Board</title>
+
   <link rel="stylesheet" href="style.css" />
 </head>
+
 <body>
-  <header>
-    <div>
-      <h1>RBGB's Office Task Board</h1>
-      <p>Shared task dashboard for daily office work.</p>
+  <div id="lock-screen" class="lock-screen">
+    <div class="lock-card">
+      <h1>RBGB's Office Board</h1>
+      <p>Enter the office passcode to continue.</p>
+
+      <input id="passcode-input" type="password" placeholder="Enter passcode" />
+      <button id="unlock-button">Enter</button>
+
+      <p id="passcode-error" class="error-message"></p>
     </div>
+  </div>
 
-    <a
-      id="new-task-button"
-      class="button"
-      target="_blank"
-      rel="noopener noreferrer"
-    >
-      + Add New Task
-    </a>
-  </header>
+  <div id="app" class="app hidden">
+    <aside class="sidebar">
+      <div>
+        <h2>Office Board</h2>
+        <p>Tasks, issues, comments, and progress.</p>
+      </div>
 
-  <main class="board">
-    <section>
-      <h2>To Do</h2>
-      <div id="todo" class="task-column"></div>
-    </section>
+      <nav>
+        <button class="nav-item active" data-filter="all">All Tasks</button>
+        <button class="nav-item" data-filter="todo">To Do</button>
+        <button class="nav-item" data-filter="in-progress">In Progress</button>
+        <button class="nav-item" data-filter="waiting">Waiting</button>
+        <button class="nav-item" data-filter="blocked">Blocked</button>
+        <button class="nav-item" data-filter="done">Done</button>
+      </nav>
+    </aside>
 
-    <section>
-      <h2>In Progress</h2>
-      <div id="in-progress" class="task-column"></div>
-    </section>
+    <main class="main">
+      <header class="topbar">
+        <div>
+          <h1>Task Dashboard</h1>
+          <p>Shared workspace for daily office work.</p>
+        </div>
 
-    <section>
-      <h2>Blocked / Issues</h2>
-      <div id="blocked" class="task-column"></div>
-    </section>
+        <button id="open-task-modal" class="primary-button">+ New Task</button>
+      </header>
 
-    <section>
-      <h2>Done</h2>
-      <div id="done" class="task-column"></div>
-    </section>
-  </main>
+      <section class="stats">
+        <div class="stat-card">
+          <span id="total-count">0</span>
+          <p>Total Tasks</p>
+        </div>
 
-  <script src="script.js"></script>
+        <div class="stat-card">
+          <span id="progress-count">0</span>
+          <p>In Progress</p>
+        </div>
+
+        <div class="stat-card">
+          <span id="waiting-count">0</span>
+          <p>Waiting</p>
+        </div>
+
+        <div class="stat-card">
+          <span id="blocked-count">0</span>
+          <p>Blocked</p>
+        </div>
+      </section>
+
+      <section id="task-list" class="task-list"></section>
+    </main>
+  </div>
+
+  <div id="task-modal" class="modal hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h2>New Task</h2>
+        <button id="close-task-modal" class="icon-button">×</button>
+      </div>
+
+      <input id="task-title" placeholder="Task title" />
+
+      <textarea id="task-description" placeholder="Task description"></textarea>
+
+      <div class="form-grid">
+        <div>
+          <label>Due date</label>
+          <input id="task-due-date" type="date" />
+        </div>
+
+        <div>
+          <label>Status</label>
+          <select id="task-status">
+            <option value="todo">To Do</option>
+            <option value="in-progress">In Progress</option>
+            <option value="waiting">Waiting</option>
+            <option value="blocked">Blocked</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Priority</label>
+          <select id="task-priority">
+            <option value="low">Low</option>
+            <option value="medium" selected>Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Assigned to</label>
+          <input id="task-assigned-to" placeholder="Joseph / Jeff / Other" />
+        </div>
+      </div>
+
+      <button id="save-task" class="primary-button full-width">Save Task</button>
+    </div>
+  </div>
+
+  <div id="detail-panel" class="detail-panel hidden">
+    <div class="detail-card">
+      <button id="close-detail-panel" class="icon-button">×</button>
+
+      <h2 id="detail-title"></h2>
+      <p id="detail-description"></p>
+
+      <div class="detail-meta">
+        <p><strong>Due:</strong> <span id="detail-due-date"></span></p>
+        <p><strong>Status:</strong> <span id="detail-status"></span></p>
+        <p><strong>Priority:</strong> <span id="detail-priority"></span></p>
+        <p><strong>Assigned:</strong> <span id="detail-assigned-to"></span></p>
+      </div>
+
+      <label>Update status</label>
+      <select id="detail-status-select">
+        <option value="todo">To Do</option>
+        <option value="in-progress">In Progress</option>
+        <option value="waiting">Waiting</option>
+        <option value="blocked">Blocked</option>
+        <option value="done">Done</option>
+      </select>
+
+      <button id="update-status" class="secondary-button">Update Status</button>
+
+      <hr />
+
+      <h3>Comments</h3>
+      <div id="comments-list" class="comments-list"></div>
+
+      <textarea id="comment-input" placeholder="Add a comment..."></textarea>
+      <button id="save-comment" class="primary-button full-width">Add Comment</button>
+    </div>
+  </div>
+
+  <script type="module" src="script.js"></script>
 </body>
 </html>
