@@ -133,9 +133,9 @@ function startRealtimeTaskListener() {
   const tasksQuery = query(collection(db, "tasks"), orderBy("createdAt", "desc"));
 
   onSnapshot(tasksQuery, (snapshot) => {
-    allTasks = snapshot.docs.map((document) => ({
-      id: document.id,
-      ...document.data()
+    allTasks = snapshot.docs.map((docSnap) => ({
+      id: docSnap.id,
+      ...docSnap.data()
     }));
 
     renderStats();
