@@ -30,6 +30,7 @@ const OFFICE_PASSCODE = "rbgb";
 let allTasks = [];
 let currentFilter = "all";
 let selectedTaskId = null;
+let unsubscribeComments = null;
 
 const lockScreen = document.getElementById("lock-screen");
 const appScreen = document.getElementById("app");
@@ -222,7 +223,10 @@ updateStatusButton.addEventListener("click", async () => {
 });
 
 saveCommentButton.addEventListener("click", async () => {
-  if (!selectedTaskId) return;
+  if (!selectedTaskId) {
+    alert("No task selected.");
+    return;
+  }
 
   const commentInput = document.getElementById("comment-input");
   const text = commentInput.value.trim();
@@ -232,46 +236,62 @@ saveCommentButton.addEventListener("click", async () => {
     return;
   }
 
-  await addDoc(collection(db, "tasks", selectedTaskId, "comments"), {
-    text,
-    author: "Office User",
-    createdAt: serverTimestamp()
-  });
+  try {
+    await addDoc(collection(db, "tasks", selectedTaskId, "comments"), {
+      text,
+      author: "Office User",
+      createdAt: serverTimestamp()
+    });
 
-  commentInput.value = "";
+    commentInput.value = "";
+  } catch (error) {
+    console.error("Error adding comment:", error);
+    alert("Comment could not be saved. Check the console.");
+  }
 });
 
 function startRealtimeCommentListener(taskId) {
   const commentsList = document.getElementById("comments-list");
-  commentsList.innerHTML = "";
+  commentsList.innerHTML = "<p>Loading comments...</p>";
+
+  if (unsubscribeComments) {
+    unsubscribeComments();
+  }
 
   const commentsQuery = query(
     collection(db, "tasks", taskId, "comments"),
     orderBy("createdAt", "asc")
   );
 
-  onSnapshot(commentsQuery, (snapshot) => {
-    commentsList.innerHTML = "";
+  unsubscribeComments = onSnapshot(
+    commentsQuery,
+    (snapshot) => {
+      commentsList.innerHTML = "";
 
-    if (snapshot.empty) {
-      commentsList.innerHTML = "<p>No comments yet.</p>";
-      return;
+      if (snapshot.empty) {
+        commentsList.innerHTML = "<p>No comments yet.</p>";
+        return;
+      }
+
+      snapshot.docs.forEach((docSnap) => {
+        const comment = docSnap.data();
+
+        const commentElement = document.createElement("div");
+        commentElement.className = "comment";
+
+        commentElement.innerHTML = `
+          <p>${escapeHTML(comment.text || "")}</p>
+          <small>${escapeHTML(comment.author || "Office User")}</small>
+        `;
+
+        commentsList.appendChild(commentElement);
+      });
+    },
+    (error) => {
+      console.error("Comment listener error:", error);
+      commentsList.innerHTML = "<p>Could not load comments. Check Firestore rules or console errors.</p>";
     }
-
-    snapshot.docs.forEach((document) => {
-      const comment = document.data();
-
-      const commentElement = document.createElement("div");
-      commentElement.className = "comment";
-
-      commentElement.innerHTML = `
-        <p>${escapeHTML(comment.text)}</p>
-        <small>${escapeHTML(comment.author || "Office User")}</small>
-      `;
-
-      commentsList.appendChild(commentElement);
-    });
-  });
+  );
 }
 
 function formatStatus(status) {
