@@ -276,7 +276,7 @@ function startRealtimeCommentListener(taskId) {
       snapshot.docs.forEach((docSnap) => {
         const comment = docSnap.data();
 
-        const commentElement = document.createElement("div");
+        const commentElement = window.document.createElement("div");
         commentElement.className = "comment";
 
         commentElement.innerHTML = `
@@ -289,7 +289,8 @@ function startRealtimeCommentListener(taskId) {
     },
     (error) => {
       console.error("Comment listener error:", error);
-      commentsList.innerHTML = "<p>Could not load comments. Check Firestore rules or console errors.</p>";
+      commentsList.innerHTML =
+        "<p>Could not load comments. Check Firestore rules or console errors.</p>";
     }
   );
 }
