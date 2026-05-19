@@ -4,6 +4,8 @@ import {
   getFirestore,
   collection,
   addDoc,
+  deleteDoc,
+  getDocs,
   onSnapshot,
   query,
   orderBy,
@@ -53,6 +55,7 @@ const detailPanel = document.getElementById("detail-panel");
 const closeDetailPanel = document.getElementById("close-detail-panel");
 const saveCommentButton = document.getElementById("save-comment");
 const updateStatusButton = document.getElementById("update-status");
+const deleteTaskButton = document.getElementById("delete-task");
 
 unlockButton.addEventListener("click", unlockApp);
 
@@ -245,6 +248,43 @@ updateStatusButton.addEventListener("click", async () => {
   });
 
   document.getElementById("detail-status").textContent = formatStatus(newStatus);
+});
+
+deleteTaskButton.addEventListener("click", async () => {
+  if (!selectedTaskId) {
+    alert("No task selected.");
+    return;
+  }
+
+  const confirmDelete = confirm(
+    "Are you sure you want to delete this task? This cannot be undone."
+  );
+
+  if (!confirmDelete) {
+    return;
+  }
+
+  try {
+    const commentsSnapshot = await getDocs(
+      collection(db, "tasks", selectedTaskId, "comments")
+    );
+
+    const deleteCommentPromises = commentsSnapshot.docs.map((commentDoc) =>
+      deleteDoc(doc(db, "tasks", selectedTaskId, "comments", commentDoc.id))
+    );
+
+    await Promise.all(deleteCommentPromises);
+
+    await deleteDoc(doc(db, "tasks", selectedTaskId));
+
+    selectedTaskId = null;
+    detailPanel.classList.add("hidden");
+
+    alert("Task deleted.");
+  } catch (error) {
+    console.error("Error deleting task:", error);
+    alert("Task could not be deleted. Check the console.");
+  }
 });
 
 saveCommentButton.addEventListener("click", async () => {
