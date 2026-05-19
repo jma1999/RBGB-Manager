@@ -9,7 +9,8 @@ import {
   orderBy,
   serverTimestamp,
   doc,
-  updateDoc
+  updateDoc,
+  increment
 } from "https://www.gstatic.com/firebasejs/11.8.1/firebase-firestore.js";
 
 const firebaseConfig = {
@@ -31,9 +32,12 @@ let allTasks = [];
 let currentFilter = "all";
 let selectedTaskId = null;
 let unsubscribeComments = null;
+let currentUserName = "Office User";
 
 const lockScreen = document.getElementById("lock-screen");
 const appScreen = document.getElementById("app");
+
+const userNameInput = document.getElementById("user-name-input");
 const passcodeInput = document.getElementById("passcode-input");
 const unlockButton = document.getElementById("unlock-button");
 const passcodeError = document.getElementById("passcode-error");
@@ -59,7 +63,16 @@ passcodeInput.addEventListener("keydown", (event) => {
 });
 
 function unlockApp() {
+  const typedName = userNameInput.value.trim();
+
+  if (!typedName) {
+    passcodeError.textContent = "Please enter your name.";
+    return;
+  }
+
   if (passcodeInput.value === OFFICE_PASSCODE) {
+    currentUserName = typedName;
+
     lockScreen.classList.add("hidden");
     appScreen.classList.remove("hidden");
     startRealtimeTaskListener();
@@ -169,6 +182,8 @@ function renderTasks() {
   filteredTasks.forEach((task) => {
     const card = document.createElement("article");
     card.className = "task-card";
+    const commentCount = task.commentCount || 0;
+    const latestComment = task.latestComment || "";
 
     card.innerHTML = `
       <h3>${escapeHTML(task.title)}</h3>
@@ -178,7 +193,17 @@ function renderTasks() {
         <span class="pill">${formatStatus(task.status)}</span>
         <span class="pill ${task.priority}">${formatPriority(task.priority)}</span>
         <span class="pill">Due: ${task.dueDate || "No date"}</span>
+        <span class="pill">${commentCount} comment${commentCount === 1 ? "" : "s"}</span>
       </div>
+
+      ${
+        latestComment
+          ? `<div class="latest-comment">
+              <strong>Latest comment:</strong>
+              <p>${escapeHTML(latestComment)}</p>
+            </div>`
+          : ""
+      }
     `;
 
     card.addEventListener("click", () => {
@@ -239,8 +264,15 @@ saveCommentButton.addEventListener("click", async () => {
   try {
     await addDoc(collection(db, "tasks", selectedTaskId, "comments"), {
       text,
-      author: "Office User",
+      author: currentUserName,
       createdAt: serverTimestamp()
+    });
+
+    await updateDoc(doc(db, "tasks", selectedTaskId), {
+      commentCount: increment(1),
+      latestComment: text,
+      latestCommentAuthor: currentUserName,
+      updatedAt: serverTimestamp()
     });
 
     commentInput.value = "";
@@ -281,7 +313,7 @@ function startRealtimeCommentListener(taskId) {
 
         commentElement.innerHTML = `
           <p>${escapeHTML(comment.text || "")}</p>
-          <small>${escapeHTML(comment.author || "Office User")}</small>
+          <small>By ${escapeHTML(comment.author || "Office User")}</small>
         `;
 
         commentsList.appendChild(commentElement);

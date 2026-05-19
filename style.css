@@ -346,3 +346,22 @@ label {
     grid-template-columns: 1fr;
   }
 }
+
+.latest-comment {
+  margin-top: 14px;
+  padding: 12px;
+  background: #f9fafb;
+  border-left: 3px solid #111827;
+  border-radius: 12px;
+}
+
+.latest-comment strong {
+  font-size: 13px;
+  color: #374151;
+}
+
+.latest-comment p {
+  margin: 6px 0 0;
+  font-size: 14px;
+  color: #4b5563;
+}
