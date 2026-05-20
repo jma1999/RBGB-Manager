@@ -43,11 +43,23 @@
     <main class="main">
       <header class="topbar">
         <div>
-          <h1>RBGB'S Task Dashboard</h1>
+          <h1>Task Dashboard</h1>
           <p>Shared workspace for daily office work.</p>
         </div>
 
-        <button id="open-task-modal" class="primary-button">+ New Task</button>
+        <div class="topbar-actions">
+          <select id="project-filter">
+            <option value="all">All Projects</option>
+          </select>
+
+          <select id="task-sort">
+            <option value="newest">Newest First</option>
+            <option value="due-date">Due Date</option>
+            <option value="priority">Priority</option>
+          </select>
+
+          <button id="open-task-modal" class="primary-button">+ New Task</button>
+        </div>
       </header>
 
       <section class="stats">
@@ -117,6 +129,11 @@
           <label>Assigned to</label>
           <input id="task-assigned-to" placeholder="Joseph / Jeff / Other" />
         </div>
+
+        <div>
+          <label>Project</label>
+          <input id="task-project" placeholder="Keystone / Spelman / Non-Billable" />
+        </div>
       </div>
 
       <button id="save-task" class="primary-button full-width">Save Task</button>
@@ -127,26 +144,50 @@
     <div class="detail-card">
       <button id="close-detail-panel" class="icon-button">×</button>
 
-      <h2 id="detail-title"></h2>
-      <p id="detail-description"></p>
+      <label>Task title</label>
+      <input id="detail-title-input" />
 
-      <div class="detail-meta">
-        <p><strong>Due:</strong> <span id="detail-due-date"></span></p>
-        <p><strong>Status:</strong> <span id="detail-status"></span></p>
-        <p><strong>Priority:</strong> <span id="detail-priority"></span></p>
-        <p><strong>Assigned:</strong> <span id="detail-assigned-to"></span></p>
+      <label>Description</label>
+      <textarea id="detail-description-input"></textarea>
+
+      <div class="form-grid">
+        <div>
+          <label>Due date</label>
+          <input id="detail-due-date-input" type="date" />
+        </div>
+
+        <div>
+          <label>Status</label>
+          <select id="detail-status-select">
+            <option value="todo">To Do</option>
+            <option value="in-progress">In Progress</option>
+            <option value="waiting">Waiting</option>
+            <option value="blocked">Blocked</option>
+            <option value="done">Done</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Priority</label>
+          <select id="detail-priority-select">
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+        </div>
+
+        <div>
+          <label>Assigned to</label>
+          <input id="detail-assigned-to-input" />
+        </div>
+
+        <div>
+          <label>Project</label>
+          <input id="detail-project-input" />
+        </div>
       </div>
 
-      <label>Update status</label>
-      <select id="detail-status-select">
-        <option value="todo">To Do</option>
-        <option value="in-progress">In Progress</option>
-        <option value="waiting">Waiting</option>
-        <option value="blocked">Blocked</option>
-        <option value="done">Done</option>
-      </select>
-
-      <button id="update-status" class="secondary-button">Update Status</button>
+      <button id="save-task-edits" class="secondary-button">Save Task Changes</button>
       <button id="delete-task" class="danger-button">Delete Task</button>
 
       <hr />
@@ -159,6 +200,6 @@
     </div>
   </div>
 
-  <script type="module" src="script.js?v=1.2"></script>
+  <script type="module" src="script.js?v=2.0"></script>
 </body>
 </html>

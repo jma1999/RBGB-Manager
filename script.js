@@ -32,6 +32,8 @@ const OFFICE_PASSCODE = "rbgb";
 
 let allTasks = [];
 let currentFilter = "all";
+let currentProjectFilter = "all";
+let currentSort = "newest";
 let selectedTaskId = null;
 let unsubscribeComments = null;
 let currentUserName = "Office User";
@@ -45,6 +47,8 @@ const unlockButton = document.getElementById("unlock-button");
 const passcodeError = document.getElementById("passcode-error");
 
 const taskList = document.getElementById("task-list");
+const projectFilter = document.getElementById("project-filter");
+const taskSort = document.getElementById("task-sort");
 
 const taskModal = document.getElementById("task-modal");
 const openTaskModal = document.getElementById("open-task-modal");
@@ -54,7 +58,7 @@ const saveTaskButton = document.getElementById("save-task");
 const detailPanel = document.getElementById("detail-panel");
 const closeDetailPanel = document.getElementById("close-detail-panel");
 const saveCommentButton = document.getElementById("save-comment");
-const updateStatusButton = document.getElementById("update-status");
+const saveTaskEditsButton = document.getElementById("save-task-edits");
 const deleteTaskButton = document.getElementById("delete-task");
 
 unlockButton.addEventListener("click", unlockApp);
@@ -108,6 +112,16 @@ document.querySelectorAll(".nav-item").forEach((button) => {
   });
 });
 
+projectFilter.addEventListener("change", () => {
+  currentProjectFilter = projectFilter.value;
+  renderTasks();
+});
+
+taskSort.addEventListener("change", () => {
+  currentSort = taskSort.value;
+  renderTasks();
+});
+
 saveTaskButton.addEventListener("click", async () => {
   const title = document.getElementById("task-title").value.trim();
   const description = document.getElementById("task-description").value.trim();
@@ -115,6 +129,7 @@ saveTaskButton.addEventListener("click", async () => {
   const status = document.getElementById("task-status").value;
   const priority = document.getElementById("task-priority").value;
   const assignedTo = document.getElementById("task-assigned-to").value.trim();
+  const project = document.getElementById("task-project").value.trim();
 
   if (!title) {
     alert("Please add a task title.");
@@ -128,6 +143,10 @@ saveTaskButton.addEventListener("click", async () => {
     status,
     priority,
     assignedTo,
+    project,
+    commentCount: 0,
+    latestComment: "",
+    latestCommentAuthor: "",
     createdAt: serverTimestamp(),
     updatedAt: serverTimestamp()
   });
@@ -143,6 +162,7 @@ function clearTaskForm() {
   document.getElementById("task-status").value = "todo";
   document.getElementById("task-priority").value = "medium";
   document.getElementById("task-assigned-to").value = "";
+  document.getElementById("task-project").value = "";
 }
 
 function startRealtimeTaskListener() {
@@ -155,6 +175,7 @@ function startRealtimeTaskListener() {
     }));
 
     renderStats();
+    renderProjectFilter();
     renderTasks();
   });
 }
@@ -169,13 +190,47 @@ function renderStats() {
     allTasks.filter((task) => task.status === "blocked").length;
 }
 
+function renderProjectFilter() {
+  const existingValue = projectFilter.value;
+
+  const projects = [...new Set(
+    allTasks
+      .map((task) => task.project)
+      .filter((project) => project && project.trim() !== "")
+  )].sort();
+
+  projectFilter.innerHTML = `<option value="all">All Projects</option>`;
+
+  projects.forEach((project) => {
+    const option = document.createElement("option");
+    option.value = project;
+    option.textContent = project;
+    projectFilter.appendChild(option);
+  });
+
+  if (projects.includes(existingValue)) {
+    projectFilter.value = existingValue;
+  } else {
+    projectFilter.value = "all";
+    currentProjectFilter = "all";
+  }
+}
+
 function renderTasks() {
   taskList.innerHTML = "";
 
-  const filteredTasks =
+  let filteredTasks =
     currentFilter === "all"
-      ? allTasks
+      ? [...allTasks]
       : allTasks.filter((task) => task.status === currentFilter);
+
+  if (currentProjectFilter !== "all") {
+    filteredTasks = filteredTasks.filter(
+      (task) => task.project === currentProjectFilter
+    );
+  }
+
+  filteredTasks = sortTasks(filteredTasks);
 
   if (filteredTasks.length === 0) {
     taskList.innerHTML = "<p>No tasks here yet.</p>";
@@ -184,11 +239,27 @@ function renderTasks() {
 
   filteredTasks.forEach((task) => {
     const card = document.createElement("article");
-    card.className = "task-card";
+
+    const isOverdue = checkIsOverdue(task);
+
+    card.className = isOverdue
+      ? "task-card overdue-card"
+      : "task-card";
+
     const commentCount = task.commentCount || 0;
     const latestComment = task.latestComment || "";
+    const latestCommentAuthor = task.latestCommentAuthor || "";
 
     card.innerHTML = `
+      <div class="task-card-header">
+        <span class="project-label">${escapeHTML(task.project || "No Project")}</span>
+        ${
+          isOverdue
+            ? `<span class="overdue-label">Overdue</span>`
+            : ""
+        }
+      </div>
+
       <h3>${escapeHTML(task.title)}</h3>
       <p>${escapeHTML(task.description || "No description added.")}</p>
 
@@ -202,7 +273,7 @@ function renderTasks() {
       ${
         latestComment
           ? `<div class="latest-comment">
-              <strong>Latest comment:</strong>
+              <strong>Latest comment${latestCommentAuthor ? ` by ${escapeHTML(latestCommentAuthor)}` : ""}:</strong>
               <p>${escapeHTML(latestComment)}</p>
             </div>`
           : ""
@@ -217,37 +288,100 @@ function renderTasks() {
   });
 }
 
+function sortTasks(tasks) {
+  const priorityRank = {
+    high: 3,
+    medium: 2,
+    low: 1
+  };
+
+  if (currentSort === "priority") {
+    return tasks.sort((a, b) => {
+      const priorityA = priorityRank[a.priority] || 0;
+      const priorityB = priorityRank[b.priority] || 0;
+
+      return priorityB - priorityA;
+    });
+  }
+
+  if (currentSort === "due-date") {
+    return tasks.sort((a, b) => {
+      if (!a.dueDate && !b.dueDate) return 0;
+      if (!a.dueDate) return 1;
+      if (!b.dueDate) return -1;
+
+      return new Date(a.dueDate) - new Date(b.dueDate);
+    });
+  }
+
+  return tasks;
+}
+
+function checkIsOverdue(task) {
+  if (!task.dueDate) return false;
+  if (task.status === "done") return false;
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const dueDate = new Date(task.dueDate);
+  dueDate.setHours(0, 0, 0, 0);
+
+  return dueDate < today;
+}
+
 function openTaskDetails(task) {
   selectedTaskId = task.id;
 
-  document.getElementById("detail-title").textContent = task.title;
-  document.getElementById("detail-description").textContent =
-    task.description || "No description added.";
-  document.getElementById("detail-due-date").textContent =
-    task.dueDate || "No due date";
-  document.getElementById("detail-status").textContent = formatStatus(task.status);
-  document.getElementById("detail-priority").textContent = formatPriority(task.priority);
-  document.getElementById("detail-assigned-to").textContent =
-    task.assignedTo || "Unassigned";
-
-  document.getElementById("detail-status-select").value = task.status;
+  document.getElementById("detail-title-input").value = task.title || "";
+  document.getElementById("detail-description-input").value = task.description || "";
+  document.getElementById("detail-due-date-input").value = task.dueDate || "";
+  document.getElementById("detail-status-select").value = task.status || "todo";
+  document.getElementById("detail-priority-select").value = task.priority || "medium";
+  document.getElementById("detail-assigned-to-input").value = task.assignedTo || "";
+  document.getElementById("detail-project-input").value = task.project || "";
 
   detailPanel.classList.remove("hidden");
 
   startRealtimeCommentListener(task.id);
 }
 
-updateStatusButton.addEventListener("click", async () => {
-  if (!selectedTaskId) return;
+saveTaskEditsButton.addEventListener("click", async () => {
+  if (!selectedTaskId) {
+    alert("No task selected.");
+    return;
+  }
 
-  const newStatus = document.getElementById("detail-status-select").value;
+  const title = document.getElementById("detail-title-input").value.trim();
+  const description = document.getElementById("detail-description-input").value.trim();
+  const dueDate = document.getElementById("detail-due-date-input").value;
+  const status = document.getElementById("detail-status-select").value;
+  const priority = document.getElementById("detail-priority-select").value;
+  const assignedTo = document.getElementById("detail-assigned-to-input").value.trim();
+  const project = document.getElementById("detail-project-input").value.trim();
 
-  await updateDoc(doc(db, "tasks", selectedTaskId), {
-    status: newStatus,
-    updatedAt: serverTimestamp()
-  });
+  if (!title) {
+    alert("Task title cannot be empty.");
+    return;
+  }
 
-  document.getElementById("detail-status").textContent = formatStatus(newStatus);
+  try {
+    await updateDoc(doc(db, "tasks", selectedTaskId), {
+      title,
+      description,
+      dueDate,
+      status,
+      priority,
+      assignedTo,
+      project,
+      updatedAt: serverTimestamp()
+    });
+
+    alert("Task updated.");
+  } catch (error) {
+    console.error("Error updating task:", error);
+    alert("Task could not be updated. Check the console.");
+  }
 });
 
 deleteTaskButton.addEventListener("click", async () => {
@@ -348,13 +482,49 @@ function startRealtimeCommentListener(taskId) {
       snapshot.docs.forEach((docSnap) => {
         const comment = docSnap.data();
 
-        const commentElement = window.document.createElement("div");
+        const commentElement = document.createElement("div");
         commentElement.className = "comment";
 
         commentElement.innerHTML = `
           <p>${escapeHTML(comment.text || "")}</p>
-          <small>By ${escapeHTML(comment.author || "Office User")}</small>
+          <small>
+            By ${escapeHTML(comment.author || "Office User")}
+            ${comment.editedAt ? " · edited" : ""}
+          </small>
+          <button class="edit-comment-button">Edit</button>
         `;
+
+        const editButton = commentElement.querySelector(".edit-comment-button");
+
+        editButton.addEventListener("click", async (event) => {
+          event.stopPropagation();
+
+          const updatedText = prompt("Edit comment:", comment.text || "");
+
+          if (updatedText === null) return;
+
+          const cleanText = updatedText.trim();
+
+          if (!cleanText) {
+            alert("Comment cannot be empty.");
+            return;
+          }
+
+          try {
+            await updateDoc(
+              doc(db, "tasks", taskId, "comments", docSnap.id),
+              {
+                text: cleanText,
+                editedAt: serverTimestamp()
+              }
+            );
+
+            await updateLatestCommentAfterEdit(taskId);
+          } catch (error) {
+            console.error("Error editing comment:", error);
+            alert("Comment could not be edited. Check the console.");
+          }
+        });
 
         commentsList.appendChild(commentElement);
       });
@@ -365,6 +535,35 @@ function startRealtimeCommentListener(taskId) {
         "<p>Could not load comments. Check Firestore rules or console errors.</p>";
     }
   );
+}
+
+async function updateLatestCommentAfterEdit(taskId) {
+  const commentsQuery = query(
+    collection(db, "tasks", taskId, "comments"),
+    orderBy("createdAt", "desc")
+  );
+
+  const commentsSnapshot = await getDocs(commentsQuery);
+
+  if (commentsSnapshot.empty) {
+    await updateDoc(doc(db, "tasks", taskId), {
+      latestComment: "",
+      latestCommentAuthor: "",
+      commentCount: 0,
+      updatedAt: serverTimestamp()
+    });
+
+    return;
+  }
+
+  const latestCommentDoc = commentsSnapshot.docs[0];
+  const latestComment = latestCommentDoc.data();
+
+  await updateDoc(doc(db, "tasks", taskId), {
+    latestComment: latestComment.text || "",
+    latestCommentAuthor: latestComment.author || "",
+    updatedAt: serverTimestamp()
+  });
 }
 
 function formatStatus(status) {
